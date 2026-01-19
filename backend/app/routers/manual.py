@@ -135,6 +135,68 @@ async def upload_manual_attachment(
     return attachment
 
 
+@router.post("/projects/{project_id}/manual/item-photo")
+async def upload_item_photo(
+    project_id: int,
+    section: str,
+    item_index: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_pm_or_admin),
+    storage: StorageService = Depends(get_storage_service)
+):
+    """Upload a photo for a specific item in a list section (appliances, finishes)."""
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Validate file type
+    if not file.content_type or not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="Only image files are allowed")
+    
+    # Save file
+    result = await storage.save_document(file, project_id)
+    
+    # Get or create manual instance
+    manual = db.query(ManualInstance).filter(ManualInstance.project_id == project_id).first()
+    if not manual:
+        manual = ManualInstance(project_id=project_id, fields={}, attachments=[])
+        db.add(manual)
+        db.commit()
+        db.refresh(manual)
+    
+    # Update the item's photo_url
+    fields = dict(manual.fields) if manual.fields else {}
+    
+    # Auto-initialize section from defaults if it doesn't exist
+    if section not in fields:
+        # Find the section in DEFAULT_MANUAL_SECTIONS
+        default_section = next(
+            (s for s in DEFAULT_MANUAL_SECTIONS if s.get("id") == section),
+            None
+        )
+        if default_section and default_section.get("default_items"):
+            fields[section] = list(default_section["default_items"])
+        else:
+            raise HTTPException(status_code=400, detail=f"Section '{section}' not found and has no defaults")
+    
+    section_data = list(fields[section])
+    
+    if item_index < 0 or item_index >= len(section_data):
+        raise HTTPException(status_code=400, detail=f"Invalid item index {item_index}. Section has {len(section_data)} items.")
+    
+    section_data[item_index] = {
+        **section_data[item_index],
+        "photo_url": result["url"]
+    }
+    fields[section] = section_data
+    manual.fields = fields
+    
+    db.commit()
+    
+    return {"url": result["url"], "item_index": item_index, "section": section}
+
+
 @router.get("/projects/{project_id}/manual/export")
 async def export_manual_pdf(
     project_id: int,

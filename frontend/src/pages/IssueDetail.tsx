@@ -35,12 +35,13 @@ import { projectsService } from '../services/projects';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-const statusColors: Record<IssueStatus, string> = {
-    open: '#fef3c7',
-    assigned: '#dbeafe',
-    in_progress: '#e0e7ff',
-    ready_for_reinspect: '#fce7f3',
-    closed: '#d1fae5',
+// Status colors with both background and text for dark mode compatibility
+const statusColors: Record<IssueStatus, { bg: string; text: string }> = {
+    open: { bg: '#fef3c7', text: '#92400e' },
+    assigned: { bg: '#dbeafe', text: '#1e40af' },
+    in_progress: { bg: '#e0e7ff', text: '#3730a3' },
+    ready_for_reinspect: { bg: '#fce7f3', text: '#9d174d' },
+    closed: { bg: '#d1fae5', text: '#065f46' },
 };
 
 const statusOptions: { value: IssueStatus; label: string }[] = [
@@ -208,7 +209,11 @@ const IssueDetail: React.FC = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                         <Chip
                             label={issue.status.replace('_', ' ')}
-                            sx={{ backgroundColor: statusColors[issue.status], fontWeight: 600 }}
+                            sx={{
+                                backgroundColor: statusColors[issue.status].bg,
+                                color: statusColors[issue.status].text,
+                                fontWeight: 600
+                            }}
                         />
                         <Chip label={issue.priority} size="small" color={priorityColors[issue.priority]} />
                     </Box>

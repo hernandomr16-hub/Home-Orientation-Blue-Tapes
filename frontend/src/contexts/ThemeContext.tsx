@@ -77,6 +77,14 @@ const getThemeOptions = (mode: 'light' | 'dark') => ({
                         transform: 'translateY(-1px)',
                     },
                 },
+                outlined: mode === 'dark' ? {
+                    borderColor: '#60a5fa', // Lighter blue for dark mode
+                    color: '#93c5fd', // Even lighter for text
+                    '&:hover': {
+                        borderColor: '#93c5fd',
+                        backgroundColor: 'rgba(147, 197, 253, 0.08)',
+                    },
+                } : {},
             },
         },
         MuiCard: {

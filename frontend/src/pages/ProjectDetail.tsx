@@ -7,6 +7,7 @@ import {
     CardContent,
     Typography,
     Button,
+    IconButton,
     Tabs,
     Tab,
     Chip,
@@ -48,12 +49,13 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
     </div>
 );
 
-const statusColors = {
-    open: '#fef3c7',
-    assigned: '#dbeafe',
-    in_progress: '#e0e7ff',
-    ready_for_reinspect: '#fce7f3',
-    closed: '#d1fae5',
+// Status colors with both background and text for dark mode compatibility
+const statusColors: Record<string, { bg: string; text: string }> = {
+    open: { bg: '#fef3c7', text: '#92400e' },
+    assigned: { bg: '#dbeafe', text: '#1e40af' },
+    in_progress: { bg: '#e0e7ff', text: '#3730a3' },
+    ready_for_reinspect: { bg: '#fce7f3', text: '#9d174d' },
+    closed: { bg: '#d1fae5', text: '#065f46' },
 };
 
 const priorityColors = {
@@ -166,35 +168,46 @@ const ProjectDetail: React.FC = () => {
                         {project.unit && ` • ${project.unit}`}
                     </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', gap: 1 }}>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                     <Button
                         variant="outlined"
                         startIcon={<DownloadIcon />}
                         onClick={handleDownloadPunchList}
+                        sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
                     >
                         Export Punch List
                     </Button>
+                    <IconButton
+                        color="primary"
+                        onClick={handleDownloadPunchList}
+                        sx={{ display: { xs: 'inline-flex', sm: 'none' }, border: 1, borderColor: 'divider' }}
+                    >
+                        <DownloadIcon />
+                    </IconButton>
 
                     {project.status !== 'delivered' && (
-                        <Button
-                            variant="contained"
-                            color="success"
-                            startIcon={<CheckCircleIcon />}
-                            onClick={() => {
-                                if (
-                                    dashboard.open_issues > 0 ||
-                                    dashboard.assigned_issues > 0 ||
-                                    dashboard.in_progress_issues > 0 ||
-                                    dashboard.ready_for_reinspect > 0
-                                ) {
-                                    setCannotCloseDialogOpen(true);
-                                } else {
-                                    setCloseDialogOpen(true);
-                                }
-                            }}
-                        >
-                            Close Project
-                        </Button>
+                        <>
+                            <Button
+                                variant="contained"
+                                color="success"
+                                startIcon={<CheckCircleIcon />}
+                                onClick={() => {
+                                    if (
+                                        dashboard.open_issues > 0 ||
+                                        dashboard.assigned_issues > 0 ||
+                                        dashboard.in_progress_issues > 0 ||
+                                        dashboard.ready_for_reinspect > 0
+                                    ) {
+                                        setCannotCloseDialogOpen(true);
+                                    } else {
+                                        setCloseDialogOpen(true);
+                                    }
+                                }}
+                                sx={{ display: { xs: 'none', md: 'inline-flex' } }}
+                            >
+                                Close Project
+                            </Button>
+                        </>
                     )}
 
                     <Button
@@ -202,59 +215,68 @@ const ProjectDetail: React.FC = () => {
                         startIcon={<AddIcon />}
                         disabled={project.status === 'delivered'}
                         onClick={() => navigate(`/projects/${id}/issues/new`)}
+                        sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
                     >
                         New Issue
                     </Button>
+                    <IconButton
+                        color="primary"
+                        onClick={() => navigate(`/projects/${id}/issues/new`)}
+                        disabled={project.status === 'delivered'}
+                        sx={{ display: { xs: 'inline-flex', sm: 'none' }, bgcolor: 'primary.main', color: 'white', '&:hover': { bgcolor: 'primary.dark' } }}
+                    >
+                        <AddIcon />
+                    </IconButton>
                 </Box>
             </Box>
 
             {/* Dashboard Stats */}
             <Grid container spacing={2} sx={{ mb: 3 }}>
                 <Grid item xs={6} sm={4} md={2}>
-                    <Card sx={{ backgroundColor: statusColors.open }}>
+                    <Card sx={{ backgroundColor: statusColors.open.bg }}>
                         <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                            <Typography variant="h4" fontWeight={700}>{dashboard.open_issues}</Typography>
-                            <Typography variant="body2">Open</Typography>
+                            <Typography variant="h4" fontWeight={700} sx={{ color: statusColors.open.text }}>{dashboard.open_issues}</Typography>
+                            <Typography variant="body2" sx={{ color: '#475569' }}>Open</Typography>
                         </CardContent>
                     </Card>
                 </Grid>
                 <Grid item xs={6} sm={4} md={2}>
-                    <Card sx={{ backgroundColor: statusColors.assigned }}>
+                    <Card sx={{ backgroundColor: statusColors.assigned.bg }}>
                         <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                            <Typography variant="h4" fontWeight={700}>{dashboard.assigned_issues}</Typography>
-                            <Typography variant="body2">Assigned</Typography>
+                            <Typography variant="h4" fontWeight={700} sx={{ color: statusColors.assigned.text }}>{dashboard.assigned_issues}</Typography>
+                            <Typography variant="body2" sx={{ color: '#475569' }}>Assigned</Typography>
                         </CardContent>
                     </Card>
                 </Grid>
                 <Grid item xs={6} sm={4} md={2}>
-                    <Card sx={{ backgroundColor: statusColors.in_progress }}>
+                    <Card sx={{ backgroundColor: statusColors.in_progress.bg }}>
                         <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                            <Typography variant="h4" fontWeight={700}>{dashboard.in_progress_issues}</Typography>
-                            <Typography variant="body2">In Progress</Typography>
+                            <Typography variant="h4" fontWeight={700} sx={{ color: statusColors.in_progress.text }}>{dashboard.in_progress_issues}</Typography>
+                            <Typography variant="body2" sx={{ color: '#475569' }}>In Progress</Typography>
                         </CardContent>
                     </Card>
                 </Grid>
                 <Grid item xs={6} sm={4} md={2}>
-                    <Card sx={{ backgroundColor: statusColors.ready_for_reinspect }}>
+                    <Card sx={{ backgroundColor: statusColors.ready_for_reinspect.bg }}>
                         <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                            <Typography variant="h4" fontWeight={700}>{dashboard.ready_for_reinspect}</Typography>
-                            <Typography variant="body2">Reinspect</Typography>
+                            <Typography variant="h4" fontWeight={700} sx={{ color: statusColors.ready_for_reinspect.text }}>{dashboard.ready_for_reinspect}</Typography>
+                            <Typography variant="body2" sx={{ color: '#475569' }}>Reinspect</Typography>
                         </CardContent>
                     </Card>
                 </Grid>
                 <Grid item xs={6} sm={4} md={2}>
-                    <Card sx={{ backgroundColor: statusColors.closed }}>
+                    <Card sx={{ backgroundColor: statusColors.closed.bg }}>
                         <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                            <Typography variant="h4" fontWeight={700}>{dashboard.closed_issues}</Typography>
-                            <Typography variant="body2">Closed</Typography>
+                            <Typography variant="h4" fontWeight={700} sx={{ color: statusColors.closed.text }}>{dashboard.closed_issues}</Typography>
+                            <Typography variant="body2" sx={{ color: '#475569' }}>Closed</Typography>
                         </CardContent>
                     </Card>
                 </Grid>
                 <Grid item xs={6} sm={4} md={2}>
                     <Card sx={{ backgroundColor: '#fef2f2' }}>
                         <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                            <Typography variant="h4" fontWeight={700} color="error">{dashboard.high_priority_open}</Typography>
-                            <Typography variant="body2">High Priority</Typography>
+                            <Typography variant="h4" fontWeight={700} sx={{ color: '#dc2626' }}>{dashboard.high_priority_open}</Typography>
+                            <Typography variant="body2" sx={{ color: '#475569' }}>High Priority</Typography>
                         </CardContent>
                     </Card>
                 </Grid>
@@ -318,7 +340,14 @@ const ProjectDetail: React.FC = () => {
                 </DialogActions>
             </Dialog>
 
-            <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs
+                value={tab}
+                onChange={(_, v) => setTab(v)}
+                variant="scrollable"
+                scrollButtons="auto"
+                allowScrollButtonsMobile
+                sx={{ borderBottom: 1, borderColor: 'divider' }}
+            >
                 <Tab icon={<IssuesIcon />} iconPosition="start" label={`Issues (${issues.length})`} />
                 <Tab icon={<AreasIcon />} iconPosition="start" label={`Areas (${areas.length})`} />
                 <Tab icon={<ContractorsIcon />} iconPosition="start" label={`Contractors (${contractors.length})`} />
@@ -338,7 +367,10 @@ const ProjectDetail: React.FC = () => {
                                         <Chip
                                             label={issue.status.replace('_', ' ')}
                                             size="small"
-                                            sx={{ backgroundColor: statusColors[issue.status] }}
+                                            sx={{
+                                                backgroundColor: statusColors[issue.status]?.bg,
+                                                color: statusColors[issue.status]?.text
+                                            }}
                                         />
                                         <Chip
                                             label={issue.priority}

@@ -38,6 +38,26 @@ export const manualService = {
         return response.data;
     },
 
+    async uploadItemPhoto(
+        projectId: number,
+        section: string,
+        itemIndex: number,
+        file: File
+    ): Promise<{ url: string; item_index: number; section: string }> {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await api.post(
+            `/api/projects/${projectId}/manual/item-photo`,
+            formData,
+            {
+                params: { section, item_index: itemIndex },
+                headers: { 'Content-Type': 'multipart/form-data' },
+            }
+        );
+        return response.data;
+    },
+
     async exportPdf(projectId: number): Promise<void> {
         const response = await api.get(`/api/projects/${projectId}/manual/export`, {
             responseType: 'blob',
@@ -52,3 +72,4 @@ export const manualService = {
         link.parentNode?.removeChild(link);
     },
 };
+

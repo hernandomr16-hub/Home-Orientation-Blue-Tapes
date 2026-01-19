@@ -18,6 +18,9 @@ import {
     Alert,
     LinearProgress,
     Chip,
+    ToggleButton,
+    ToggleButtonGroup,
+    Tooltip,
 } from '@mui/material';
 import {
     ExpandMore as ExpandMoreIcon,
@@ -29,6 +32,10 @@ import {
     InsertDriveFile as FileIcon,
     PictureAsPdf as PdfIcon,
     Image as ImageIcon,
+    CameraAlt as CameraIcon,
+    CheckCircle as CheckCircleIcon,
+    ViewQuilt as ViewQuiltIcon,
+    Apps as AppsIcon,
 } from '@mui/icons-material';
 import { manualService } from '../services/manual';
 import { projectsService } from '../services/projects';
@@ -44,6 +51,8 @@ const ProjectManual: React.FC = () => {
     const [expanded, setExpanded] = useState<string | false>('contacts');
     const [uploading, setUploading] = useState(false);
     const [uploadError, setUploadError] = useState<string | null>(null);
+    const [photoUploading, setPhotoUploading] = useState<{ section: string; index: number } | null>(null);
+    const [quickScanMode, setQuickScanMode] = useState(true); // Default to Quick Scan mode
 
     useEffect(() => {
         if (id) loadData();
@@ -187,6 +196,55 @@ const ProjectManual: React.FC = () => {
         }
     };
 
+    const handleItemPhotoUpload = async (
+        sectionId: string,
+        itemIndex: number,
+        event: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        const file = event.target.files?.[0];
+        if (!file || !id) return;
+
+        // Validate image type
+        if (!file.type.startsWith('image/')) {
+            setUploadError('Solo se permiten imágenes');
+            return;
+        }
+
+        // Validate file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            setUploadError('La imagen no puede superar 10MB');
+            return;
+        }
+
+        setPhotoUploading({ section: sectionId, index: itemIndex });
+        setUploadError(null);
+
+        try {
+            const result = await manualService.uploadItemPhoto(
+                Number(id),
+                sectionId,
+                itemIndex,
+                file
+            );
+
+            // Update local state with new photo URL
+            setManual(prev => {
+                if (!prev) return prev;
+                const newFields = { ...prev.fields };
+                const list = [...(newFields[sectionId] || [])];
+                list[itemIndex] = { ...list[itemIndex], photo_url: result.url };
+                newFields[sectionId] = list;
+                return { ...prev, fields: newFields };
+            });
+        } catch (error) {
+            console.error('Failed to upload photo:', error);
+            setUploadError('Error al subir la foto. Intenta de nuevo.');
+        } finally {
+            setPhotoUploading(null);
+            event.target.value = '';
+        }
+    };
+
     const getFileIcon = (type: string) => {
         if (type?.includes('pdf')) return <PdfIcon color="error" />;
         if (type?.includes('image')) return <ImageIcon color="primary" />;
@@ -201,6 +259,8 @@ const ProjectManual: React.FC = () => {
         });
     };
 
+    const getApiUrl = () => import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
     if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>;
     if (!project || !manual) return <Typography>Project not found</Typography>;
 
@@ -212,14 +272,33 @@ const ProjectManual: React.FC = () => {
                 <Typography color="text.primary">Home Owner Manual</Typography>
             </Breadcrumbs>
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
                 <Box>
-                    <Typography variant="h4" fontWeight={700}>Home Owner Manual</Typography>
-                    <Typography color="text.secondary">Build and export the final manual for the homeowner.</Typography>
+                    <Typography variant="h4" fontWeight={700} sx={{ fontSize: { xs: '1.5rem', md: '2rem' } }}>Home Owner Manual</Typography>
+                    <Typography color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>Build and export the final manual for the homeowner.</Typography>
                 </Box>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Button variant="outlined" startIcon={<SaveIcon />} onClick={handleSave}>Save Draft</Button>
-                    <Button variant="contained" startIcon={<DownloadIcon />} onClick={handleExport}>Export PDF</Button>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <ToggleButtonGroup
+                        value={quickScanMode ? 'quick' : 'full'}
+                        exclusive
+                        onChange={(_, val) => val && setQuickScanMode(val === 'quick')}
+                        size="small"
+                    >
+                        <ToggleButton value="quick">
+                            <Tooltip title="Vista Rápida (Solo Fotos)">
+                                <AppsIcon fontSize="small" />
+                            </Tooltip>
+                        </ToggleButton>
+                        <ToggleButton value="full">
+                            <Tooltip title="Vista Completa">
+                                <ViewQuiltIcon fontSize="small" />
+                            </Tooltip>
+                        </ToggleButton>
+                    </ToggleButtonGroup>
+                    <Button variant="outlined" startIcon={<SaveIcon />} onClick={handleSave} sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>Save Draft</Button>
+                    <IconButton onClick={handleSave} sx={{ display: { xs: 'inline-flex', sm: 'none' }, border: 1, borderColor: 'divider' }}><SaveIcon /></IconButton>
+                    <Button variant="contained" startIcon={<DownloadIcon />} onClick={handleExport} sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>Export PDF</Button>
+                    <IconButton onClick={handleExport} sx={{ display: { xs: 'inline-flex', sm: 'none' }, bgcolor: 'primary.main', color: 'white', '&:hover': { bgcolor: 'primary.dark' } }}><DownloadIcon /></IconButton>
                 </Box>
             </Box>
 
@@ -240,34 +319,251 @@ const ProjectManual: React.FC = () => {
                         {/* LIST TYPE (Appliances, Finishes) */}
                         {section.type === 'list' && (
                             <Box>
-                                <Grid container spacing={2} sx={{ mb: 2 }}>
-                                    {manual.fields[section.id]?.map((item: any, idx: number) => (
-                                        <Grid item xs={12} key={idx}>
-                                            <Card variant="outlined">
-                                                <CardContent sx={{ pb: '16px !important', display: 'flex', gap: 2, alignItems: 'start' }}>
-                                                    <Grid container spacing={2}>
-                                                        {section.item_schema.map((field: any) => (
-                                                            <Grid item xs={12} sm={field.name === 'item' ? 4 : 2} key={field.name}>
-                                                                <TextField
-                                                                    fullWidth
-                                                                    size="small"
-                                                                    label={field.label}
-                                                                    placeholder={field.placeholder}
-                                                                    value={item[field.name] || ''}
-                                                                    onChange={(e) => updateField(section.id, field.name, e.target.value, idx)}
-                                                                />
-                                                            </Grid>
-                                                        ))}
-                                                    </Grid>
-                                                    <IconButton color="error" onClick={() => removeItem(section.id, idx)}>
-                                                        <DeleteIcon />
-                                                    </IconButton>
-                                                </CardContent>
-                                            </Card>
+                                {/* Quick Scan Mode: Photo Gallery */}
+                                {quickScanMode ? (
+                                    <Box>
+                                        <Grid container spacing={2}>
+                                            {manual.fields[section.id]?.map((item: any, idx: number) => (
+                                                <Grid item xs={12} sm={6} md={4} lg={3} key={idx}>
+                                                    <Card
+                                                        variant="outlined"
+                                                        sx={{
+                                                            position: 'relative',
+                                                            '&:hover .delete-btn': { opacity: 1 },
+                                                        }}
+                                                    >
+                                                        {/* Large Photo Area */}
+                                                        <Box
+                                                            sx={{
+                                                                width: '100%',
+                                                                aspectRatio: '1',
+                                                                border: '2px dashed',
+                                                                borderColor: item.photo_url ? 'success.main' : 'divider',
+                                                                borderRadius: 1,
+                                                                display: 'flex',
+                                                                flexDirection: 'column',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                overflow: 'hidden',
+                                                                cursor: 'pointer',
+                                                                bgcolor: item.photo_url ? 'transparent' : 'action.hover',
+                                                                '&:hover': { borderColor: 'primary.main', bgcolor: 'action.selected' },
+                                                            }}
+                                                            component="label"
+                                                        >
+                                                            <input
+                                                                type="file"
+                                                                hidden
+                                                                accept="image/*"
+                                                                capture="environment"
+                                                                onChange={(e) => handleItemPhotoUpload(section.id, idx, e)}
+                                                                disabled={photoUploading !== null}
+                                                            />
+                                                            {photoUploading?.section === section.id && photoUploading?.index === idx ? (
+                                                                <CircularProgress size={40} />
+                                                            ) : item.photo_url ? (
+                                                                <>
+                                                                    <img
+                                                                        src={`${getApiUrl()}${item.photo_url}`}
+                                                                        alt="Item"
+                                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                                    />
+                                                                    <CheckCircleIcon
+                                                                        color="success"
+                                                                        sx={{ position: 'absolute', top: 8, right: 8, bgcolor: 'white', borderRadius: '50%' }}
+                                                                    />
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <CameraIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 0.5 }} />
+                                                                    <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', px: 1 }}>
+                                                                        {item.example || 'Toca para subir'}
+                                                                    </Typography>
+                                                                </>
+                                                            )}
+                                                        </Box>
+                                                        {/* Simple Description Field */}
+                                                        <CardContent sx={{ py: 1, '&:last-child': { pb: 1 } }}>
+                                                            <TextField
+                                                                fullWidth
+                                                                size="small"
+                                                                variant="standard"
+                                                                placeholder={section.id === 'appliances' ? 'ej: Refrigerador Samsung' : 'ej: Paredes sala - SW7015'}
+                                                                value={item.item || item.area || ''}
+                                                                onChange={(e) => updateField(
+                                                                    section.id,
+                                                                    section.id === 'appliances' ? 'item' : 'area',
+                                                                    e.target.value,
+                                                                    idx
+                                                                )}
+                                                                InputProps={{ disableUnderline: true }}
+                                                                sx={{ '& input': { textAlign: 'center', fontSize: '0.875rem' } }}
+                                                            />
+                                                        </CardContent>
+                                                        {/* Delete Button (hover) */}
+                                                        <IconButton
+                                                            className="delete-btn"
+                                                            size="small"
+                                                            color="error"
+                                                            onClick={() => removeItem(section.id, idx)}
+                                                            sx={{
+                                                                position: 'absolute',
+                                                                top: 4,
+                                                                left: 4,
+                                                                opacity: 0,
+                                                                transition: 'opacity 0.2s',
+                                                                bgcolor: 'background.paper',
+                                                                '&:hover': { bgcolor: 'error.light', color: 'white' },
+                                                            }}
+                                                        >
+                                                            <DeleteIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Card>
+                                                </Grid>
+                                            ))}
+                                            {/* Add New Photo Card */}
+                                            <Grid item xs={6} sm={4} md={3}>
+                                                <Card
+                                                    variant="outlined"
+                                                    sx={{
+                                                        height: '100%',
+                                                        minHeight: 160,
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        cursor: 'pointer',
+                                                        borderStyle: 'dashed',
+                                                        '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
+                                                    }}
+                                                    onClick={() => addItem(section.id)}
+                                                >
+                                                    <AddIcon sx={{ fontSize: 40, color: 'text.secondary', mb: 1 }} />
+                                                    <Typography variant="body2" color="text.secondary">Agregar</Typography>
+                                                </Card>
+                                            </Grid>
                                         </Grid>
-                                    ))}
-                                </Grid>
-                                <Button startIcon={<AddIcon />} onClick={() => addItem(section.id)}>Add Item</Button>
+                                    </Box>
+                                ) : (
+                                    /* Full Mode: All Fields */
+                                    <Box>
+                                        <Grid container spacing={2} sx={{ mb: 2 }}>
+                                            {manual.fields[section.id]?.map((item: any, idx: number) => (
+                                                <Grid item xs={12} key={idx}>
+                                                    <Card variant="outlined" sx={{ overflow: 'visible' }}>
+                                                        <CardContent sx={{ pb: '16px !important' }}>
+                                                            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                                                                {/* Photo thumbnail/upload */}
+                                                                <Box
+                                                                    sx={{
+                                                                        width: 80,
+                                                                        height: 80,
+                                                                        flexShrink: 0,
+                                                                        border: '2px dashed',
+                                                                        borderColor: item.photo_url ? 'success.main' : 'divider',
+                                                                        borderRadius: 1,
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'center',
+                                                                        overflow: 'hidden',
+                                                                        position: 'relative',
+                                                                        cursor: 'pointer',
+                                                                        bgcolor: item.photo_url ? 'transparent' : 'action.hover',
+                                                                        '&:hover': { borderColor: 'primary.main' },
+                                                                    }}
+                                                                    component="label"
+                                                                >
+                                                                    <input
+                                                                        type="file"
+                                                                        hidden
+                                                                        accept="image/*"
+                                                                        capture="environment"
+                                                                        onChange={(e) => handleItemPhotoUpload(section.id, idx, e)}
+                                                                        disabled={photoUploading !== null}
+                                                                    />
+                                                                    {photoUploading?.section === section.id && photoUploading?.index === idx ? (
+                                                                        <CircularProgress size={24} />
+                                                                    ) : item.photo_url ? (
+                                                                        <>
+                                                                            <img
+                                                                                src={`${getApiUrl()}${item.photo_url}`}
+                                                                                alt="Item"
+                                                                                style={{
+                                                                                    width: '100%',
+                                                                                    height: '100%',
+                                                                                    objectFit: 'cover',
+                                                                                }}
+                                                                            />
+                                                                            <CheckCircleIcon
+                                                                                color="success"
+                                                                                sx={{
+                                                                                    position: 'absolute',
+                                                                                    top: -8,
+                                                                                    right: -8,
+                                                                                    bgcolor: 'white',
+                                                                                    borderRadius: '50%',
+                                                                                }}
+                                                                            />
+                                                                        </>
+                                                                    ) : (
+                                                                        <CameraIcon color="action" />
+                                                                    )}
+                                                                </Box>
+
+                                                                {/* Fields */}
+                                                                <Grid container spacing={1.5} sx={{ flex: 1 }}>
+                                                                    {(section.item_schema || [])
+                                                                        .filter((field: any) => field.type !== 'photo')
+                                                                        .map((field: any) => (
+                                                                            <Grid
+                                                                                item
+                                                                                xs={12}
+                                                                                sm={
+                                                                                    field.name === 'item' || field.name === 'area'
+                                                                                        ? 6
+                                                                                        : field.type === 'date'
+                                                                                            ? 4
+                                                                                            : 3
+                                                                                }
+                                                                                key={field.name}
+                                                                            >
+                                                                                <TextField
+                                                                                    fullWidth
+                                                                                    size="small"
+                                                                                    type={field.type === 'date' ? 'date' : 'text'}
+                                                                                    label={field.label}
+                                                                                    placeholder={field.placeholder}
+                                                                                    value={item[field.name] || ''}
+                                                                                    onChange={(e) =>
+                                                                                        updateField(section.id, field.name, e.target.value, idx)
+                                                                                    }
+                                                                                    InputLabelProps={
+                                                                                        field.type === 'date' ? { shrink: true } : undefined
+                                                                                    }
+                                                                                />
+                                                                            </Grid>
+                                                                        ))}
+                                                                </Grid>
+
+                                                                {/* Delete button */}
+                                                                <IconButton
+                                                                    color="error"
+                                                                    onClick={() => removeItem(section.id, idx)}
+                                                                    sx={{ mt: 0.5 }}
+                                                                >
+                                                                    <DeleteIcon />
+                                                                </IconButton>
+                                                            </Box>
+                                                        </CardContent>
+                                                    </Card>
+                                                </Grid>
+                                            ))}
+                                        </Grid>
+                                        <Button startIcon={<AddIcon />} onClick={() => addItem(section.id)}>
+                                            Add Item
+                                        </Button>
+                                    </Box>
+                                )}
                             </Box>
                         )}
 
@@ -352,6 +648,39 @@ const ProjectManual: React.FC = () => {
                                     <Alert severity="error" onClose={() => setUploadError(null)} sx={{ mb: 2 }}>
                                         {uploadError}
                                     </Alert>
+                                )}
+
+                                {/* Physical Location Field */}
+                                {section.location_field && (
+                                    <Box sx={{ mb: 3 }}>
+                                        <TextField
+                                            fullWidth
+                                            size="small"
+                                            label={section.location_field.label}
+                                            placeholder={section.location_field.placeholder}
+                                            value={manual.fields[section.id]?.[section.location_field.name] || ''}
+                                            onChange={(e) => {
+                                                const sectionData = manual.fields[section.id] || {};
+                                                setManual({
+                                                    ...manual,
+                                                    fields: {
+                                                        ...manual.fields,
+                                                        [section.id]: {
+                                                            ...sectionData,
+                                                            [section.location_field.name]: e.target.value,
+                                                        },
+                                                    },
+                                                });
+                                            }}
+                                            InputProps={{
+                                                startAdornment: (
+                                                    <Box component="span" sx={{ mr: 1, color: 'text.secondary' }}>
+                                                        📍
+                                                    </Box>
+                                                ),
+                                            }}
+                                        />
+                                    </Box>
                                 )}
 
                                 {/* Upload Button */}
@@ -439,6 +768,110 @@ const ProjectManual: React.FC = () => {
                                         No hay documentos adjuntos aún. Sube tu primera garantía o documento.
                                     </Typography>
                                 )}
+                            </Box>
+                        )}
+
+                        {/* COLOR PALETTE TYPE */}
+                        {section.type === 'color_palette' && (
+                            <Box>
+                                {/* Photo Upload Area */}
+                                <Box
+                                    sx={{
+                                        width: '100%',
+                                        height: 300,
+                                        border: '2px dashed',
+                                        borderColor: manual.fields?.finishes_photo ? 'success.main' : 'divider',
+                                        borderRadius: 2,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        overflow: 'hidden',
+                                        cursor: 'pointer',
+                                        bgcolor: manual.fields?.finishes_photo ? 'transparent' : 'action.hover',
+                                        mb: 3,
+                                        '&:hover': { borderColor: 'primary.main' },
+                                    }}
+                                    component="label"
+                                >
+                                    <input
+                                        type="file"
+                                        hidden
+                                        accept="image/*"
+                                        capture="environment"
+                                        onChange={async (e) => {
+                                            const file = e.target.files?.[0];
+                                            if (!file || !id) return;
+                                            try {
+                                                const result = await manualService.uploadAttachment(Number(id), 'finishes', file);
+                                                setManual(prev => {
+                                                    if (!prev) return prev;
+                                                    return {
+                                                        ...prev,
+                                                        fields: { ...prev.fields, finishes_photo: result.url }
+                                                    };
+                                                });
+                                            } catch (error) {
+                                                console.error('Failed to upload palette photo:', error);
+                                            }
+                                        }}
+                                    />
+                                    {manual.fields?.finishes_photo ? (
+                                        <img
+                                            src={`${getApiUrl()}${manual.fields.finishes_photo}`}
+                                            alt="Color Palette"
+                                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                        />
+                                    ) : (
+                                        <>
+                                            <CameraIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 1 }} />
+                                            <Typography variant="h6" color="text.secondary">
+                                                Sube la foto de tu paleta de colores
+                                            </Typography>
+                                            <Typography variant="caption" color="text.secondary">
+                                                Toca para tomar o seleccionar foto
+                                            </Typography>
+                                        </>
+                                    )}
+                                </Box>
+
+                                {/* Color Table */}
+                                <Typography variant="subtitle2" sx={{ mb: 2 }}>Colores utilizados:</Typography>
+                                <Grid container spacing={2}>
+                                    {(section.colors || []).map((colorItem: any, colorIdx: number) => (
+                                        <Grid item xs={12} sm={6} key={colorIdx}>
+                                            <Card variant="outlined" sx={{ p: 2 }}>
+                                                <Typography variant="caption" color="text.secondary">{colorItem.area}</Typography>
+                                                <TextField
+                                                    fullWidth
+                                                    size="small"
+                                                    placeholder="Nombre del color (ej: Agreeable Gray)"
+                                                    value={manual.fields?.[`color_${colorIdx}_name`] || ''}
+                                                    onChange={(e) => {
+                                                        setManual(prev => ({
+                                                            ...prev!,
+                                                            fields: { ...prev!.fields, [`color_${colorIdx}_name`]: e.target.value }
+                                                        }));
+                                                    }}
+                                                    sx={{ mt: 0.5 }}
+                                                />
+                                                <TextField
+                                                    fullWidth
+                                                    size="small"
+                                                    placeholder="Código (ej: SW-7029)"
+                                                    value={manual.fields?.[`color_${colorIdx}_code`] || ''}
+                                                    onChange={(e) => {
+                                                        setManual(prev => ({
+                                                            ...prev!,
+                                                            fields: { ...prev!.fields, [`color_${colorIdx}_code`]: e.target.value }
+                                                        }));
+                                                    }}
+                                                    sx={{ mt: 1 }}
+                                                />
+                                            </Card>
+                                        </Grid>
+                                    ))}
+                                </Grid>
                             </Box>
                         )}
                     </AccordionDetails>

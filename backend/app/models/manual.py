@@ -52,55 +52,57 @@ DEFAULT_MANUAL_SECTIONS = [
         "id": "appliances",
         "title": "Appliances",
         "type": "list",
-        "description": "List of installed appliances",
+        "description": "List of installed appliances - take photos of serial labels",
         "item_schema": [
             {"name": "item", "label": "Item Name", "type": "text", "placeholder": "e.g. Refrigerator"},
             {"name": "brand", "label": "Brand", "type": "text"},
             {"name": "model", "label": "Model #", "type": "text"},
             {"name": "serial", "label": "Serial #", "type": "text"},
+            {"name": "install_date", "label": "Install Date", "type": "date"},
+            {"name": "photo_url", "label": "Photo (Serial Label)", "type": "photo"},
         ],
         "default_items": [
-            {"item": "Refrigerator"},
-            {"item": "Range/Stove"},
-            {"item": "Dishwasher"},
-            {"item": "Microwave"},
-            {"item": "Washer"},
-            {"item": "Dryer"},
-            {"item": "Water Heater"},
+            {"item": "Refrigerator", "example": "Ej: Manual nevera, etiqueta serial"},
+            {"item": "Range/Stove", "example": "Ej: Manual estufa, etiqueta serial"},
+            {"item": "Dishwasher", "example": "Ej: Manual lavaplatos"},
+            {"item": "Microwave", "example": "Ej: Manual microondas"},
+            {"item": "Washer", "example": "Ej: Manual lavadora"},
+            {"item": "Dryer", "example": "Ej: Manual secadora"},
+            {"item": "Water Heater", "example": "Ej: Etiqueta calentador de agua"},
         ]
     },
     {
         "id": "finishes",
-        "title": "Finishes (Paint & Materials)",
-        "type": "list",
-        "description": "Paint codes and material specifications",
-        "item_schema": [
-            {"name": "area", "label": "Area/Surface", "type": "text", "placeholder": "e.g. Main Walls"},
-            {"name": "brand", "label": "Brand", "type": "text"},
-            {"name": "color", "label": "Color Name/Code", "type": "text"},
-            {"name": "finish", "label": "Finish/Sheen", "type": "text", "placeholder": "e.g. Eggshell, Satin"},
-        ],
-        "default_items": [
-            {"area": "Interior Walls (Main)", "brand": "Sherwin Williams", "finish": "Eggshell"},
-            {"area": "Interior Trim", "brand": "Sherwin Williams", "finish": "Semi-Gloss"},
-            {"area": "Ceilings", "brand": "Sherwin Williams", "finish": "Flat"},
-            {"area": "Flooring (Main)", "brand": "", "finish": ""},
-            {"area": "Kitchen Cabinets", "brand": "", "finish": ""},
-            {"area": "Kitchen Countertops", "brand": "", "finish": ""},
+        "title": "Color Palette",
+        "type": "color_palette",
+        "description": "Paint colors used in your home - upload a photo of the color palette",
+        "photo_field": "palette_photo",
+        "colors": [
+            {"area": "Walls (Main)", "color_name": "", "color_code": ""},
+            {"area": "Walls (Accent)", "color_name": "", "color_code": ""},
+            {"area": "Trim/Molding", "color_name": "", "color_code": ""},
+            {"area": "Ceilings", "color_name": "", "color_code": ""},
+            {"area": "Cabinets", "color_name": "", "color_code": ""},
+            {"area": "Exterior", "color_name": "", "color_code": ""},
         ]
     },
     {
         "id": "systems",
         "title": "Mechanical Systems",
-        "type": "key_value",
-        "description": "Technical details of home systems",
-        "fields": [
-            {"name": "hvac_system", "label": "HVAC System Type", "type": "text"},
-            {"name": "filter_size", "label": "Air Filter Size", "type": "text"},
-            {"name": "water_heater_type", "label": "Water Heater Type", "type": "text"},
-            {"name": "water_shutoff_loc", "label": "Main Water Shutoff Location", "type": "text"},
-            {"name": "breaker_panel_loc", "label": "Breaker Panel Location", "type": "text"},
-            {"name": "garbage_pickup", "label": "Garbage Pickup Day", "type": "text"},
+        "type": "list",
+        "description": "Technical details of home systems - take photos of serial labels",
+        "item_schema": [
+            {"name": "name", "label": "System Name", "type": "text"},
+            {"name": "details", "label": "Details/Notes", "type": "text"},
+            {"name": "photo_url", "label": "Photo", "type": "photo"},
+        ],
+        "default_items": [
+            {"name": "HVAC System", "details": "", "photo_url": "", "example": "Ej: Etiqueta unidad A/C"},
+            {"name": "Water Heater", "details": "", "photo_url": "", "example": "Ej: Etiqueta serial calentador"},
+            {"name": "Breaker Panel", "details": "", "photo_url": "", "example": "Ej: Foto panel el\u00e9ctrico"},
+            {"name": "Main Water Shutoff", "details": "", "photo_url": "", "example": "Ej: Ubicaci\u00f3n llave principal"},
+            {"name": "Air Filter", "details": "", "photo_url": "", "example": "Ej: Foto tama\u00f1o filtro"},
+            {"name": "Thermostat", "details": "", "photo_url": "", "example": "Ej: Manual termostato"},
         ]
     },
     {
@@ -125,7 +127,12 @@ DEFAULT_MANUAL_SECTIONS = [
         "title": "Warranties & Documents",
         "type": "documents",
         "description": "Important warranties and documentation",
-        "accepts": ["pdf", "jpg", "png"]
+        "accepts": ["pdf", "jpg", "png"],
+        "location_field": {
+            "name": "physical_location",
+            "label": "Physical Document Location",
+            "placeholder": "e.g. Kitchen drawer, Filing cabinet"
+        }
     },
     {
         "id": "notes",
