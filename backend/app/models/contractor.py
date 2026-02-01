@@ -4,32 +4,8 @@ from sqlalchemy.sql import func
 from ..database import Base
 
 
-# Common trades in construction
-DEFAULT_TRADES = [
-    "General",
-    "Electrical",
-    "Plumbing",
-    "HVAC",
-    "Flooring",
-    "Painting",
-    "Drywall",
-    "Roofing",
-    "Windows/Doors",
-    "Cabinets",
-    "Countertops",
-    "Appliances",
-    "Landscaping",
-    "Concrete",
-    "Framing",
-    "Insulation",
-    "Siding",
-    "Gutters",
-    "Cleaning",
-]
-
-
 class Contractor(Base):
-    """Master contractor record - can be assigned to multiple projects."""
+    """Master contractor record - belongs to a trade category."""
     __tablename__ = "contractors"
     
     id = Column(Integer, primary_key=True, index=True)
@@ -37,13 +13,15 @@ class Contractor(Base):
     contact_name = Column(String(255), nullable=True)
     email = Column(String(255), nullable=True)
     phone = Column(String(50), nullable=True)
-    trades = Column(JSON, default=list)  # List of trades this contractor handles
+    trade_id = Column(Integer, ForeignKey("trades.id", ondelete="SET NULL"), nullable=True)
+    trades = Column(JSON, default=list)  # DEPRECATED: kept for backward compatibility
     notes = Column(Text, nullable=True)  # Access hours, rules, etc.
     is_active = Column(Integer, default=1)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationships
+    trade = relationship("Trade", back_populates="contractors")
     project_assignments = relationship("ProjectContractor", back_populates="contractor")
     issues = relationship("Issue", back_populates="contractor")
 

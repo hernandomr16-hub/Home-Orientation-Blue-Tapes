@@ -88,7 +88,10 @@ export interface Contractor {
     contact_name?: string;
     email?: string;
     phone?: string;
-    trades: string[];
+    trade_id?: number;
+    trade_ids?: number[];  // Array of trade IDs for multi-select
+    trade?: Trade;
+    trades: string[];  // Trade names for display
     notes?: string;
     is_active: number;
     created_at?: string;
@@ -100,6 +103,8 @@ export interface ContractorCreate {
     contact_name?: string;
     email?: string;
     phone?: string;
+    trade_id?: number;
+    trade_ids?: number[];
     trades?: string[];
     notes?: string;
 }
@@ -118,6 +123,30 @@ export interface ProjectContractorCreate {
     contractor_id: number;
     trades?: string[];
     notes?: string;
+}
+
+// Trade (Category of work)
+export interface Trade {
+    id: number;
+    name: string;
+    description?: string;
+    icon?: string;
+    order: number;
+    is_active: number;
+    contractor_count: number;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface TradeCreate {
+    name: string;
+    description?: string;
+    icon?: string;
+    order?: number;
+}
+
+export interface TradeWithContractors extends Trade {
+    contractors: Contractor[];
 }
 
 // Issue

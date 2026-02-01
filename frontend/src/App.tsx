@@ -6,6 +6,7 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Projects from './pages/Projects';
 import ProjectDetail from './pages/ProjectDetail';
+import ProjectWizard from './pages/ProjectWizard';
 import IssueCreate from './pages/IssueCreate';
 import IssueDetail from './pages/IssueDetail';
 import ProjectManual from './pages/ProjectManual';
@@ -68,6 +69,7 @@ function AppRoutes() {
       >
         <Route index element={<Navigate to="/projects" replace />} />
         <Route path="projects" element={<Projects />} />
+        <Route path="projects/new" element={<ProjectWizard />} />
         <Route path="projects/:id" element={<ProjectDetail />} />
         <Route path="projects/:id/issues/new" element={<IssueCreate />} />
         <Route path="projects/:id/issues/:issueId" element={<IssueDetail />} />
