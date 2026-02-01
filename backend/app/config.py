@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     app_url: str = "http://localhost:3000"
     debug: bool = False
     
+    # CORS - comma-separated list of allowed origins for production
+    cors_origins: str = "http://localhost:3000,http://localhost:5173"
+    
     # Additional email config
     email_from: str = "noreply@bluetape.app"
     

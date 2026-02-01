@@ -26,17 +26,21 @@ app = FastAPI(
     openapi_url="/api/openapi.json"
 )
 
-# CORS middleware
+# CORS middleware - parse origins from settings
+cors_origins = [origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()]
+# Add common development origins
+cors_origins.extend([
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+])
+# Remove duplicates
+cors_origins = list(set(cors_origins))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173",
-        "http://192.168.50.101:5173",  # Network access for mobile
-        "http://192.168.50.101:3000",
-    ],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
